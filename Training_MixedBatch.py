@@ -23,7 +23,7 @@ import os
 import copy
 from PIL import Image
 
-from sklearn.metrics import roc_auc_score, roc_curve
+# from sklearn.metrics import roc_auc_score, roc_curve
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -68,7 +68,7 @@ class NSCLC_Dataset(Dataset):
                 slide_path = os.path.join(self.B2Path, 'Data', slide)
 
             num = len(os.listdir(slide_path))
-            np.random.seed(0)
+            np.random.seed(10)
             idxs = np.random.choice(num, self.tile_per_slide, replace=False)
             list_temp = os.listdir(slide_path)
             # Append slide_path with filename
@@ -107,9 +107,9 @@ if __name__ == '__main__':
     # Hyper Parameters and Paths
     model_abbr = 'Resenet18_' # Model Identifier
     magnif = '20'             # 20x Magnification Images
-    num_epochs_list = [25,25,25] # Number of epochs for each train-test experiment
+    num_epochs_list = [20,20,20] # Number of epochs for each train-test experiment
 
-    tile_per_slide = 1000
+    tile_per_slide = 500 #
     
     # Train-test experiments
     nfold = 1    # Number of train-test experiments
@@ -119,7 +119,6 @@ if __name__ == '__main__':
     batch_size = 200    # Batch size
     num_workers = 8     # Number of workers for data loading
     lr = 1e-3           # Learning rate
-    momentum = 0.9      # Momentum
     weight_decay = 0.1  # Weight decay
 
 
@@ -144,24 +143,24 @@ if __name__ == '__main__':
     slides_bm1 = []
     slides_co1 = []
     for i in range(len(slide1)):
-        if gt1[i] == 0 and len(os.listdir(os.path.join(B1Path,'Data', slide1[i]))) >= tile_per_slide:
+        if gt1[i] == 1 and len(os.listdir(os.path.join(B1Path,'Data', slide1[i]))) >= tile_per_slide:
             slides_bm1.append(slide1[i])
-        elif gt1[i] == 1 and len(os.listdir(os.path.join(B1Path,'Data', slide1[i]))) >= tile_per_slide:
+        elif gt1[i] == 0 and len(os.listdir(os.path.join(B1Path,'Data', slide1[i]))) >= tile_per_slide:
             slides_co1.append(slide1[i])
 
     slides_bm2 = []
     slides_co2 = []
     for i in range(len(slide2)):
         if os.path.exists(os.path.join(B2Path,'Data', slide2[i])):
-            if gt2[i] == 0  and len(os.listdir(os.path.join(B2Path,'Data', slide2[i]))) >= tile_per_slide:
+            if gt2[i] == 1  and len(os.listdir(os.path.join(B2Path,'Data', slide2[i]))) >= tile_per_slide:
                 slides_bm2.append(slide2[i])
-            elif gt2[i] == 1 and len(os.listdir(os.path.join(B2Path,'Data', slide2[i]))) >= tile_per_slide:
+            elif gt2[i] == 0 and len(os.listdir(os.path.join(B2Path,'Data', slide2[i]))) >= tile_per_slide:
                 slides_co2.append(slide2[i])
         
     # fix random seed
 
-    for fold in range(2,3):
-        print(fold)
+    for fold in range(nfold):
+        print('Fold: ',fold)
         np.random.seed(fold)
 
         # Generate 0 to N-1 index for each slide
@@ -248,7 +247,8 @@ if __name__ == '__main__':
         
         traindataset_sizes =  len(train_dataset)
         testdataset_sizes =  len(test_dataset)
-        print(traindataset_sizes, testdataset_sizes)
+        print('Training set size:',traindataset_sizes)
+        print('Testing set size:', testdataset_sizes)
         
                 
         # Initialize pretrained model
@@ -261,10 +261,10 @@ if __name__ == '__main__':
         
         criterion = nn.CrossEntropyLoss()
         
-        optimizer_ft = optim.Adam(model_ft.parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer_ft = optim.Adam(model_ft.parameters(), lr=lr, weight_decay=weight_decay) 
         
         # Decay LR by a factor of 0.1 every xx epochs 
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=int(num_epochs_list[fold]/3), gamma=0.1)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=int(num_epochs_list[fold]/3), gamma=0.5)
         
         # Number of parameters
         num_params = sum(param.numel() for param in model_ft.parameters())
@@ -278,11 +278,8 @@ if __name__ == '__main__':
         
         since = time.time()
         
-        best_model_wts = copy.deepcopy(model_ft.state_dict())
         train_loss =  []
-        val_loss = []
         train_acc = []
-        val_acc = []
         for epoch in range(num_epochs_list[fold]):
             t = time.time()
             print('-' * 40)
@@ -298,6 +295,9 @@ if __name__ == '__main__':
             for inputs, labels in trainloaders:
                 inputs = inputs.float().to(device)
                 labels = labels.long().to(device)
+                # plt.figure()
+                # plt.imshow(inputs[0,:,:,:].permute(1,2,0).cpu())
+                # plt.show()
                 
                 optimizer_ft.zero_grad()
 
@@ -322,35 +322,36 @@ if __name__ == '__main__':
         
             
             elapsed = time.time() - t
-            print('Training Time per epoch: ',elapsed)
+            print('Training Time per epoch: ',int(elapsed))
             print('{} Loss: {:.4f} Acc: {:.4f} '.format('Train', epoch_loss, epoch_acc))
             
             
             running_loss = 0.0
             running_corrects = 0.0
-            
-             # Iterate over data.
-            for inputs, labels in testloaders:
-                inputs = inputs.float().to(device)
-                labels = labels.long().to(device)
+            # Iterate over data.
+            if epoch % 2 ==0:
+                model_ft.eval()
+                for inputs, labels in testloaders:
+                    inputs = inputs.float().to(device)
+                    labels = labels.long().to(device)
+                    
+                    optimizer_ft.zero_grad()
+    
+                    with torch.no_grad():
+                        outputs = model_ft(inputs)
+                        preds_score, preds_class = torch.max(outputs,1)
+                        loss = criterion(outputs, labels)
+    
+                    # Calculate Loss and Accuracy
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds_class == labels.data)
                 
-                optimizer_ft.zero_grad()
-
-                with torch.no_grad():
-                    outputs = model_ft(inputs)
-                    preds_score, preds_class = torch.max(outputs,1)
-                    loss = criterion(outputs, labels)
-
-                # Calculate Loss and Accuracy
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds_class == labels.data)
-            
-            epoch_loss = (running_loss / testdataset_sizes)
-            epoch_acc = (running_corrects / testdataset_sizes).cpu()
-            
-            elapsed = time.time() - t
-            print('Testing Time per epoch: ',elapsed)
-            print('{} Loss: {:.4f} Acc: {:.4f} '.format('Test', epoch_loss, epoch_acc))
+                epoch_loss = (running_loss / testdataset_sizes)
+                epoch_acc = (running_corrects / testdataset_sizes).cpu()
+                
+                elapsed = time.time() - t
+                print('Testing Time per epoch: ',int(elapsed))
+                print('{} Loss: {:.4f} Acc: {:.4f} '.format('Test', epoch_loss, epoch_acc))
 
 
         time_elapsed = time.time() - since
