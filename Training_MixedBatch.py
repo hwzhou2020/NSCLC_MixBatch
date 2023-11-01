@@ -160,7 +160,8 @@ if __name__ == '__main__':
         
     # fix random seed
 
-    for fold in range(nfold):
+    for fold in range(2,3):
+        print(fold)
         np.random.seed(fold)
 
         # Generate 0 to N-1 index for each slide
@@ -325,6 +326,9 @@ if __name__ == '__main__':
             print('{} Loss: {:.4f} Acc: {:.4f} '.format('Train', epoch_loss, epoch_acc))
             
             
+            running_loss = 0.0
+            running_corrects = 0.0
+            
              # Iterate over data.
             for inputs, labels in testloaders:
                 inputs = inputs.float().to(device)
@@ -341,23 +345,23 @@ if __name__ == '__main__':
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds_class == labels.data)
             
-            epoch_loss = (running_loss / traindataset_sizes)
-            epoch_acc = (running_corrects / traindataset_sizes).cpu()
-            train_loss.append(epoch_loss)
-            train_acc.append(epoch_acc)
-        
+            epoch_loss = (running_loss / testdataset_sizes)
+            epoch_acc = (running_corrects / testdataset_sizes).cpu()
             
             elapsed = time.time() - t
             print('Testing Time per epoch: ',elapsed)
-            print('{} Loss: {:.4f} Acc: {:.4f} '.format('Train', epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} Acc: {:.4f} '.format('Test', epoch_loss, epoch_acc))
 
 
         time_elapsed = time.time() - since
         model_wts = copy.deepcopy(model_ft.state_dict())
-        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+        print('Testing complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
 
         # Save trained model
-        torch.save(model_ft, os.path.join(save_dir, 'model_' + fold + '_whole_model.pt'))
+        torch.save(model_ft, os.path.join(save_dir, 'model_' + str(fold) + '_whole_model.pt'))
 
+
+    # In[] Slide level testing results
+    
         
