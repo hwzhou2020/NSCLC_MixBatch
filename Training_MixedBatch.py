@@ -112,7 +112,7 @@ if __name__ == '__main__':
     tile_per_slide = 500 #
     
     # Train-test experiments
-    nfold = 1    # Number of train-test experiments
+    nfold = 3    # Number of train-test experiments
     num_val = 20 # 20*4
     
     # Model Training Parameters
@@ -228,7 +228,7 @@ if __name__ == '__main__':
                                     transforms.RandomCrop(224),
                                     transforms.RandomHorizontalFlip(),
                                     transforms.RandomVerticalFlip(),
-                                    transforms.RandomRotation(90),
+                                    # transforms.RandomRotation(90),
                                     transforms.ToTensor(),
                                     transforms.Normalize([mean_r,mean_g,mean_b], [std_r,std_g,std_b])
                                     ]),
@@ -261,7 +261,7 @@ if __name__ == '__main__':
         
         criterion = nn.CrossEntropyLoss()
         
-        optimizer_ft = optim.Adam(model_ft.parameters(), lr=lr, weight_decay=weight_decay) 
+        optimizer_ft = optim.Adam(model_ft.parameters(), lr=lr) # , weight_decay=weight_decay 
         
         # Decay LR by a factor of 0.1 every xx epochs 
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=int(num_epochs_list[fold]/3), gamma=0.5)
@@ -355,7 +355,7 @@ if __name__ == '__main__':
 
 
         time_elapsed = time.time() - since
-        model_wts = copy.deepcopy(model_ft.state_dict())
+        # model_wts = copy.deepcopy(model_ft.state_dict())
         print('Testing complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
 
