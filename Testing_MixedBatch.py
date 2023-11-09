@@ -76,7 +76,7 @@ class NSCLC_Dataset(Dataset):
         label = self.filename_list[idx][1]
         image = self.transform(image)
 
-        slide_name = os.path.basename(self.filename_list[idx][0]).split('_')[0]
+        slide_name = os.path.basename(os.path.dirname(self.filename_list[idx][0]))
         return image, label, slide_name
 
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     magnif = '20'             # 20x Magnification Images
     num_epochs_list = [20,20,20] # Number of epochs for each train-test experiment
 
-    tile_per_slide = 1000 #
+    tile_per_slide = 500 #
     
     # Train-test experiments
     nfold = 3    # Number of train-test experiments
@@ -150,7 +150,7 @@ if __name__ == '__main__':
         
     # fix random seed
 
-    for fold in range(nfold): # nfold
+    for fold in range(3,8): # nfold
         print('Fold: ',fold)
         np.random.seed(fold)
 
@@ -291,18 +291,16 @@ if __name__ == '__main__':
         df.to_csv(os.path.join(save_dir, 'model_' + str(fold) + '_test_results.csv'), index=False)
 
         # In[] Calculate Slide Accuracy
-    for fold in range(nfold):
+    for fold in range(8):
         df = pd.read_csv(os.path.join(save_dir, 'model_' + str(fold) + '_test_results.csv'))
         slides = df['slide'].unique()
         slide_acc = []
-        since = time.time()
         for slide in slides:
             df_slide = df[df['slide'] == slide]
             slide_acc.append(np.sum(df_slide['label'] == df_slide['pred_class']) / len(df_slide))  
-        elapsed = time.time() - since
-        print('Time: ',int(elapsed))
+
         print('Fold: ',fold)
-        print('Slide Acc: ',np.mean(np.array(slide_acc)))
+        print('Slide Acc: ', np.sum(np.sign(np.array(slide_acc)-0.5) /2+0.5) /len(slides) )
 
 
         

@@ -107,7 +107,7 @@ if __name__ == '__main__':
     # Hyper Parameters and Paths
     model_abbr = 'Resenet18_' # Model Identifier
     magnif = '20'             # 20x Magnification Images
-    num_epochs_list = [20,20,20] # Number of epochs for each train-test experiment
+    # num_epochs_list = [20,20,20] # Number of epochs for each train-test experiment
 
     tile_per_slide = 500 #
     
@@ -159,7 +159,7 @@ if __name__ == '__main__':
         
     # fix random seed
 
-    for fold in range(nfold):
+    for fold in range(3,8):
         print('Fold: ',fold)
         np.random.seed(fold)
 
@@ -264,14 +264,13 @@ if __name__ == '__main__':
         optimizer_ft = optim.Adam(model_ft.parameters(), lr=lr) # , weight_decay=weight_decay 
         
         # Decay LR by a factor of 0.1 every xx epochs 
-        exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=int(num_epochs_list[fold]/3), gamma=0.5)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=int(20/3), gamma=0.5)
         
         # Number of parameters
         num_params = sum(param.numel() for param in model_ft.parameters())
         print('  ')
         print('Magnification: ' + magnif + ' | Model: ' + model_abbr + ' | Learning Rate: ' + str(lr))
         print('Number of parameters: ',num_params)
-        print('Total Number of Epochs : ', num_epochs_list[fold])
         
 
         # Begin Training 
@@ -280,10 +279,10 @@ if __name__ == '__main__':
         
         train_loss =  []
         train_acc = []
-        for epoch in range(num_epochs_list[fold]):
+        for epoch in range(20):
             t = time.time()
             print('-' * 40)
-            print('Epoch {}/{}'.format(epoch, num_epochs_list[fold] - 1))
+            print('Epoch {}/{}'.format(epoch, 20 - 1))
             
             # Training Phase
             model_ft.train()
