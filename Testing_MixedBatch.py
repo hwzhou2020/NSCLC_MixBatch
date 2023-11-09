@@ -150,7 +150,7 @@ if __name__ == '__main__':
         
     # fix random seed
 
-    for fold in range(3,8): # nfold
+    for fold in range(nfold): # nfold
         print('Fold: ',fold)
         np.random.seed(fold)
 
